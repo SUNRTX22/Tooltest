@@ -1,6 +1,6 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-    Name = "Tool in ui Rayfield by DayToDay2044",
+    Name = "Tool by DayToDay2044 V1.0",
     Icon = 0,
     LoadingTitle = "Tool :D",
     LoadingSubtitle = "by DayToDay2044",
@@ -260,6 +260,16 @@ Setting:CreateSlider({
     Callback = function(Value)
         delayTime = Value / 1000
     end,
+})
+Setting:CreateButton({
+   Name = "Rejoin server",
+   Callback = function()
+      local TeleportService = game:GetService("TeleportService")
+      local Players = game:GetService("Players")
+      local placeId = game.PlaceId
+      local player = Players.LocalPlayer
+      TeleportService:Teleport(placeId, player)
+   end,
 })
 Setting:CreateButton({
     Name = "Clear console F9",
