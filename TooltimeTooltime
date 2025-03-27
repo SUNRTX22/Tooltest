@@ -1,0 +1,271 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+    Name = "Tool in ui Rayfield by DayToDay2044",
+    Icon = 0,
+    LoadingTitle = "Tool :D",
+    LoadingSubtitle = "by DayToDay2044",
+    Theme = "Default",
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+})
+local monitorType = "Visible"
+local isMonitoring = false
+local monitorThread = nil
+local connections = {}
+local delayTime = 0.01
+local function stopMonitoring()
+    if monitorThread then
+        task.cancel(monitorThread)
+        monitorThread = nil
+    end
+    for _, conn in pairs(connections) do
+        if conn then
+            conn:Disconnect()
+        end
+    end
+    connections = {}
+    print("🎨 Stop Hooking UI")
+end
+local hookProperties = {
+    ["Text"] = {classes = {"TextLabel", "TextButton"}, emoji = "💬"},
+    ["Visible"] = {classes = {"GuiObject"}, emoji = "👁️"},
+    ["Enabled"] = {classes = {"ScreenGui"}, emoji = "⚙️"},
+    ["Active"] = {classes = {"GuiButton"}, emoji = "🖱️"},
+    ["BackgroundTransparency"] = {classes = {"GuiObject"}, emoji = "🪟"},
+    ["Size"] = {classes = {"GuiObject"}, emoji = "📏"},
+    ["Position"] = {classes = {"GuiObject"}, emoji = "📍"},
+    ["Rotation"] = {classes = {"GuiObject"}, emoji = "🔄"},
+    ["Image"] = {classes = {"ImageLabel", "ImageButton"}, emoji = "🖼️"},
+}
+local function shouldHook(instance, classList)
+    for _, className in ipairs(classList) do
+        if instance:IsA(className) then return true end
+    end
+    return false
+end
+local hookFunctions = {}
+for property, data in pairs(hookProperties) do
+    local label = property 
+    hookFunctions[label] = function()
+        stopMonitoring()
+        print(data.emoji .. " Start Hooking UI - " .. label)
+        for _, v in pairs(game.Players.LocalPlayer:WaitForChild("PlayerGui"):GetDescendants()) do
+            if shouldHook(v, data.classes) then
+                local conn = v:GetPropertyChangedSignal(property):Connect(function()
+                    task.wait(delayTime)
+                    print(data.emoji, "UI Hooking:", v:GetFullName(), "->", property, "=", v[property])
+                end)
+                table.insert(connections, conn)
+            end
+        end
+    end
+end
+local Main = Window:CreateTab("Main", "book-user")
+local UIHooking = Window:CreateTab("Monitor", "eye")
+local Endcoder = Window:CreateTab("Obfucasted", "shield-half")
+local Setting = Window:CreateTab("Setting", "settings")
+local startTick = tick()
+local infoParagraph = Main:CreateParagraph({
+    Title = "🛠 Script made by DayToDay2044 (Open Source)",
+    Content = "Loading server & player info..."
+})
+local function formatTime(seconds)
+    local hours = math.floor(seconds / 3600)
+    local minutes = math.floor((seconds % 3600) / 60)
+    local secs = math.floor(seconds % 60)
+    return string.format("%d Hour(s), %d Minute(s), %d Second(s)", hours, minutes, secs)
+end
+task.spawn(function()
+    while true do
+        local runtime = formatTime(tick() - startTick)
+        local userId = tostring(game.Players.LocalPlayer.UserId)
+        local players = string.format("%d Player(s)", #game.Players:GetPlayers())
+        local maxPlayers = string.format("%d Players Max", game.Players.MaxPlayers)
+        local placeId = tostring(game.PlaceId)
+        local placeName = "Unknown"
+        pcall(function()
+            placeName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+        end)
+        local content = table.concat({
+            "👤 Player ID: " .. userId,
+            "🧍 Appearance: " .. userId,
+            "👥 Players: " .. players .. " / " .. maxPlayers,
+            "📍 Place ID: " .. placeId,
+            "🧭 Place Name: " .. placeName,
+            "⏱ Run Time: " .. runtime,
+        }, "\n\n")
+        infoParagraph:Set({
+            Title = "🛠 Script made by DayToDay2044 (Open Source)\n",
+            Content = content
+        })
+
+        task.wait(1)
+    end
+end)
+local statusParagraph = UIHooking:CreateParagraph({
+    Title = "📊 Hook Status",
+    Content = "Status: Not Monitoring\nMonitoring: None"
+})
+local function updateParagraph()
+    local statusText = isMonitoring and "🟢 Monitoring" or "🔴 Not Monitoring"
+    local currentTime = os.date("%Y-%m-%d %H:%M:%S") 
+    statusParagraph:Set({
+        Title = "📊 Hook Status",
+        Content = "Status: " .. statusText ..
+                  "\nMonitoring: " .. monitorType ..
+                  "\nTime: " .. currentTime
+    })
+end
+task.spawn(function()
+    while true do
+        updateParagraph()
+        task.wait(1) 
+    end
+end)
+UIHooking:CreateToggle({
+    Name = "Auto UI Hooking [Check in console]",
+    CurrentValue = false,
+    Flag = "HookingV1",
+    Callback = function(Value)
+        isMonitoring = Value
+        if Value then
+            hookFunctions[monitorType]()
+            print("🎨 Start Hooking UI")
+        else
+            stopMonitoring()
+        end
+        updateParagraph() 
+    end,
+})
+UIHooking:CreateDropdown({
+    Name = "UI Monitor",
+    Options = {"Visible", "Enabled", "Text", "Active", "Transparency", "Size", "Position", "Rotation", "Image"},
+    CurrentOption = "Visible",
+    Flag = "HookingV2",
+    Callback = function(Option)
+        if type(Option) == "table" then Option = Option[1] end
+        monitorType = Option
+        stopMonitoring()
+        print("🎨 Select Hooking UI:", monitorType)
+        if isMonitoring and hookFunctions[monitorType] then
+            hookFunctions[monitorType]()
+        end
+        updateParagraph()
+    end,
+})
+local showPosition = false
+local positionParagraph
+positionParagraph = UIHooking:CreateParagraph({
+    Title = "📍 Player Position [Realtime]",
+    Content = "X: 0\nY: 0\nZ: 0"
+})
+UIHooking:CreateToggle({
+   Name = "Show Position X Y Z",
+   CurrentValue = false,
+   Flag = "ShowXYZ",
+   Callback = function(Value)
+      showPosition = Value
+   end,
+})
+UIHooking:CreateButton({
+   Name = "Copy Position",
+   Callback = function()
+      local character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+      local pos = character:FindFirstChild("HumanoidRootPart") or character:WaitForChild("HumanoidRootPart", 3)
+      if pos then
+         local vector = pos.Position
+         setclipboard(string.format("Vector3.new(%.2f, %.2f, %.2f)", vector.X, vector.Y, vector.Z))
+      end
+   end,
+})
+task.spawn(function()
+    while true do
+        if showPosition then
+            local character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+            local pos = character:FindFirstChild("HumanoidRootPart")
+            if not pos then
+                pos = character:WaitForChild("HumanoidRootPart", 3)
+            end
+            if pos then
+                local p = pos.Position
+                positionParagraph:Set({
+                    Title = "📍 Player Position [Realtime]",
+                    Content = string.format("X: %.2f\nY: %.2f\nZ: %.2f", p.X, p.Y, p.Z)
+                })
+            else
+                positionParagraph:Set({
+                    Title = "📍 Player Position [Realtime]",
+                    Content = "Unavailable (No HRP)"
+                })
+            end
+        end
+        task.wait(0.05)
+    end
+end)
+Endcoder:CreateInput({
+   Name = "Loadstring Encoder",
+   CurrentValue = "",
+   PlaceholderText = "Enter any string or URL to encode as ASCII",
+   RemoveTextAfterFocusLost = false,
+   Flag = "asciiEncode",
+   Callback = function(Text)
+       local encoded = Text:gsub(".", function(bb)
+           return "\\" .. bb:byte()
+       end)
+       setclipboard(encoded)
+       Rayfield:Notify({
+           Title = "Encoder successfully",
+           Content = "You can check in console F9 [copied]",
+           Duration = 6.5,
+           Image = "clipboard-check",
+       })
+       print("✅ Encoded ASCII copied to clipboard:\n" .. encoded)
+       pcall(function()
+           Rayfield:UpdateInput("asciiEncode", {
+               Text = ""
+           })
+       end)
+   end,
+})
+Endcoder:CreateInput({
+   Name = "Loadstring Decoder",
+   CurrentValue = "",
+   PlaceholderText = "Paste encoded ASCII here to decode",
+   RemoveTextAfterFocusLost = false,
+   Flag = "asciiDecode",
+   Callback = function(Text)
+       local decoded = Text:gsub("\\(%d+)", function(code)
+           return string.char(tonumber(code))
+       end)
+       setclipboard(decoded)
+       Rayfield:Notify({
+           Title = "Decoded successfully",
+           Content = "Result copied to clipboard",
+           Duration = 6.5,
+           Image = "clipboard-check",
+       })
+       print("✅ Decoded result copied to clipboard:\n" .. decoded)
+       pcall(function()
+           Rayfield:UpdateInput("asciiDecode", { Text = "" })
+       end)
+   end,
+})
+Setting:CreateSlider({
+    Name = "Delay Hooking",
+    Range = {0.5, 5000},
+    Increment = 0.5,
+    Suffix = " ms",
+    CurrentValue = 1,
+    Flag = "DELAY_X",
+    Callback = function(Value)
+        delayTime = Value / 1000
+    end,
+})
+Setting:CreateButton({
+    Name = "Clear console F9",
+    Callback = function()
+        for i = 1, 100 do print(" ") end
+        print("🎨 Console cleared.")
+    end,
+})
+Window:Display()
